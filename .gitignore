@@ -1,0 +1,11 @@
+.vscode/
+pjas-thyroid/
+code/ipynb_checkpoints/
+.DS_Store
+code/best_model.pth
+code/catboost_info/
+code/catboost_info/catboost_training.json
+code/catboost_info/time_left.tsv
+code/catboost_info/learn/events.out.tfevents
+
+.codegpt
