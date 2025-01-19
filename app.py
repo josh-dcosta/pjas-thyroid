@@ -56,7 +56,7 @@ def predict_cancer(age, gender, response, tumor_size, lymph_node_spread, focalit
     including 'TumorSize', 'LymphNodeSpread', and 'Focality' as additional features.
     """
     # 1. Load your pre-fitted scaler from disk
-    scaler_file = "model/pjas-thyroid-scaler.pkl"
+    scaler_file = "model/pjas-thyroid-Scaler.pkl"
     if not os.path.exists(scaler_file):
         return "Error: Scaler file not found. Please check your path or name."
 
