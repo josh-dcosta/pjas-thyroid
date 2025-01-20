@@ -3,6 +3,20 @@ import joblib
 import os
 import pandas as pd
 
+# Path to the model scores file
+model_scores_file = "report/model_summary_report_6_smote.csv"
+
+# Load model performance metrics from the provided CSV file
+if os.path.exists(model_scores_file):
+    model_scores_df = pd.read_csv(model_scores_file)
+    required_columns = {'Model Name', 'Model Sensitivity', 'Model Specificity'}
+    if required_columns.issubset(model_scores_df.columns):
+        model_performance = model_scores_df.set_index('Model Name')[['Model Sensitivity', 'Model Specificity']].T.to_dict()
+    else:
+        raise ValueError(f"The file '{model_scores_file}' must contain the columns: {required_columns}")
+else:
+    raise FileNotFoundError(f"The model scores file '{model_scores_file}' was not found. Please ensure it exists in the 'report/' directory.")
+
 # Dictionary containing the model names and corresponding pickle file names
 model_paths = {
     'AdaBoost': 'pjas-thyroid-AdaBoost.pkl',
@@ -16,208 +30,179 @@ model_paths = {
     'XGBoost': 'pjas-thyroid-XGBoost.pkl'
 }
 
-# Example: Hard-coded dictionary of accuracies per model.
-model_accuracies = {
-    'AdaBoost': 97.13,
-    'Logistic Regression': 96.87,
-    'Gaussian Naive Bayes': 95.3,
-    'Gradient Boosting': 98.96,
-    'Support Vector Machine': 96.34,
-    'Decision Tree': 97.91,
-    'K-Nearest Neighbors': 97.13,
-    'Random Forest': 98.96,
-    'XGBoost': 98.43
-}
+# Preload all models at startup
+loaded_models = {}
+for model_name, pickle_file in model_paths.items():
+    model_file_path = os.path.join("model", pickle_file)
+    if os.path.exists(model_file_path):
+        try:
+            loaded_models[model_name] = joblib.load(model_file_path)
+        except Exception as e:
+            print(f"Error loading {model_name}: {e}")
+    else:
+        print(f"Model file for {model_name} not found.")
 
-# We assume:
-#   0 -> Cancer cannot recur
-#   1 -> Cancer can recur
+def predict_cancer(age, gender, T, N, Focality, Response):
+    if not (1 <= age <= 100):
+        return "🔴 **Error:** Age must be between 1 and 100."
 
-response_details = {
-    "0": """**Excellent Response**  
-Negative imaging studies and suppressed thyroglobulin levels  
-(below 0.2 ng/mL or stimulated Tg below 1 ng/mL).""",
-    "1": """**Indeterminate Response**  
-Nonspecific findings on imaging studies, making it difficult  
-to confidently classify as benign or malignant,  
-with potentially low thyroglobulin levels.""",
-    "2": """**Biochemical Incomplete**  
-Negative imaging but elevated thyroglobulin levels  
-(suppressed Tg above 1 ng/mL or stimulated Tg above 10 ng/mL)  
-or rising anti-Tg antibody levels.""",
-    "3": """**Structural Incomplete**  
-Presence of identifiable structural disease on imaging,  
-regardless of thyroglobulin level."""
-}
-
-def predict_cancer(age, gender, response, tumor_size, lymph_node_spread, focality):
-    """
-    Generates a Markdown table with emoji icons for each model's prediction,
-    including 'TumorSize', 'LymphNodeSpread', and 'Focality' as additional features.
-    """
-    # 1. Load your pre-fitted scaler from disk
-    scaler_file = "model/pjas-thyroid-Scaler.pkl"
-    if not os.path.exists(scaler_file):
-        return "Error: Scaler file not found. Please check your path or name."
-
-    scaler = joblib.load(scaler_file)
-
-    # 2. Simple encodings for demonstration
     gender_val = 0 if gender == "Female" else 1
-    response_val = int(response)
-    tumor_val = int(tumor_size)          # Convert Tumor Size dropdown value to int
-    lymph_val = int(lymph_node_spread)   # Convert Lymph Node Spread dropdown value to int
-    focality_val = int(focality)         # Convert Focality dropdown value to int
+    response_val = int(Response)
+    T_val = int(T)
+    N_val = int(N)
+    Focality_val = int(Focality)
 
-    # 3. Create a DataFrame for the features
     features = pd.DataFrame({
         'Age': [age],
         'Gender': [gender_val],
-        'T': [tumor_val],
-        'N': [lymph_val],
-        'Focality': [focality_val],
+        'T': [T_val],
+        'N': [N_val],
+        'Focality': [Focality_val],
         'Response': [response_val]
     })
 
-    # 4. Remove any NaN
-    features = features.dropna()
+    scaler_file = "model/pjas-thyroid-Scaler.pkl"
+    if not os.path.exists(scaler_file):
+        return "🔴 **Error:** Scaler file not found. Please contact the administrator."
 
-    # 5. Scale the 'Age' column
-    #    If you have more features to scale, include them here accordingly
+    scaler = joblib.load(scaler_file)
     features[['Age']] = scaler.transform(features[['Age']])
 
-    # 6. Sort models by accuracy (descending)
     sorted_model_names = sorted(
-        model_paths.keys(),
-        key=lambda m: model_accuracies[m],
+        model_performance.keys(),
+        key=lambda m: model_performance[m]['Model Sensitivity'],
         reverse=True
     )
 
-    # 7. Build a Markdown table
-    table_header = (
-        "| **Model**                   | **Accuracy** | **Prediction**                |\n"
-        "|-----------------------------|--------------|--------------------------------|\n"
-    )
+    # HTML table header with colored columns
+    table_header = """
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th style="color:red;">Recurrence Accuracy (%)</th>
+                <th style="color:green;">Non-Recurrence Accuracy (%)</th>
+                <th>Prediction</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
     table_rows = []
 
-    # 8. Emojis for predictions
-    can_recur_emoji = "🔴"  # "Cancer can recur"
-    cannot_recur_emoji = "🟢"  # "Cancer cannot-recur"
+    can_recur_emoji = "🔴"  # "can recur"
+    cannot_recur_emoji = "🟢"  # "cannot-recur"
 
-    # 9. Iterate through each model and make predictions
     for model_name in sorted_model_names:
-        pickle_file = model_paths[model_name]
-        model_file_path = os.path.join("model", pickle_file) 
-
-        if not os.path.exists(model_file_path):
-            row = f"| {model_name} | N/A | **Error**: file not found |"
+        model = loaded_models.get(model_name)
+        if not model:
+            row = f"<tr><td>{model_name}</td><td>N/A</td><td>N/A</td><td>Error: Model not loaded</td></tr>"
             table_rows.append(row)
             continue
 
-        model = joblib.load(model_file_path)
-        prediction = model.predict(features)  # e.g., [0] or [1]
-        pred_value = prediction[0]
+        try:
+            prediction = model.predict(features)
+            pred_value = prediction[0]
 
-        # 10. Convert numeric prediction to icon + text
-        if pred_value == 1:
-            pred_text = f"{can_recur_emoji} Sorry, Your Cancer can recur"
-        else:
-            pred_text = f"{cannot_recur_emoji} Great News! Your Cancer cannot-recur"
+            if pred_value == 1:
+                pred_text = f"{can_recur_emoji} Can recur"
+            else:
+                pred_text = f"{cannot_recur_emoji} Cannot-recur"
 
-        accuracy = model_accuracies.get(model_name, "N/A")
-        row = f"| {model_name} | {accuracy}% | {pred_text} |"
-        table_rows.append(row)
+            sensitivity = model_performance[model_name]['Model Sensitivity']
+            specificity = model_performance[model_name]['Model Specificity']
 
-    # 11. Combine into a single Markdown table
-    md_table = table_header + "\n".join(table_rows)
-    return md_table
+            row = f"<tr><td>{model_name}</td><td>{sensitivity:.1f}%</td><td>{specificity:.1f}%</td><td>{pred_text}</td></tr>"
+            table_rows.append(row)
+        except Exception as e:
+            row = f"<tr><td>{model_name}</td><td>N/A</td><td>N/A</td><td>Error: {str(e)}</td></tr>"
+            table_rows.append(row)
+
+    table_footer = "</tbody></table>"
+    html_table = table_header + "".join(table_rows) + table_footer
+    success_message = "<br><br>✅ <strong>Prediction completed successfully.</strong>"
+    return html_table + success_message
 
 def clear_md():
-    """Clears the Markdown output."""
     return ""
 
+# UI Layout
 with gr.Blocks() as demo:
     gr.Markdown("# Thyroid Cancer Recurrence Predictor")
 
-    # Existing inputs
-    age_slider = gr.Slider(
-        minimum=1,
-        maximum=100,
-        step=1,
-        label="Age",
-        value=44,
-        interactive=True
-    )
-    
-    gender_radio = gr.Radio(
-        choices=["Female", "Male"],
-        value="Female",
-        label="Gender",
-        interactive=True
-    )
+    with gr.Row():
+        age_slider = gr.Number(
+            label="Age",
+            value=44,
+            interactive=True,
+            elem_id="age-box",
+            step=1
+        )
+        gender_radio = gr.Radio(
+            choices=["Female", "Male"],
+            value="Female",
+            label="Gender",
+            interactive=True
+        )
 
-    # New Tumor Size dropdown with descriptive text
-    tumor_size_dropdown = gr.Dropdown(
-        choices=[
-            ("T1a (≤1 cm, confined to the thyroid)", "0"),
-            ("T1b (>1 cm and ≤2 cm, confined to the thyroid)", "1"),
-            ("T2 (>2 cm and ≤4 cm, confined to the thyroid)", "2"),
-            ("T3a (>4 cm, confined to the thyroid)", "3"),
-            ("T3b (Minimal extrathyroidal extension)", "4"),
-            ("T4a (Moderate extrathyroidal extension, operable)", "5"),
-            ("T4b (Extensive extrathyroidal extension, inoperable)", "6")
-        ],
-        value="0",  # Default T1a
-        label="Tumor Size",
-        interactive=True
-    )
+    with gr.Row():
+        T_dropdown = gr.Dropdown(
+            choices=[
+                ("T1a (≤1 cm, confined to the thyroid)", "0"),
+                ("T1b (>1 cm and ≤2 cm, confined to the thyroid)", "1"),
+                ("T2 (>2 cm and ≤4 cm, confined to the thyroid)", "2"),
+                ("T3a (>4 cm, confined to the thyroid)", "3"),
+                ("T3b (Minimal extrathyroidal extension)", "4"),
+                ("T4a (Moderate extrathyroidal extension, operable)", "5"),
+                ("T4b (Extensive extrathyroidal extension, inoperable)", "6")
+            ],
+            value="0",
+            label="T (Tumor Size)",
+            interactive=True
+        )
 
-    # New Lymph Node Spread dropdown with descriptive text
-    lymph_node_dropdown = gr.Dropdown(
-        choices=[
-            ("N0 (No spread to nearby lymph nodes)", "0"),
-            ("N1a (Spread to lymph nodes in the neck close to the thyroid)", "1"),
-            ("N1b (Spread to lymph nodes in the neck farther from the thyroid or upper chest)", "2")
-        ],
-        value="0",  # Default N0
-        label="Lymph Node Spread",
-        interactive=True
-    )
+    with gr.Row():
+        N_dropdown = gr.Dropdown(
+            choices=[
+                ("N0 (No spread to nearby lymph nodes)", "0"),
+                ("N1a (Spread to lymph nodes in the neck close to the thyroid)", "1"),
+                ("N1b (Spread to lymph nodes in the neck farther from the thyroid or upper chest)", "2")
+            ],
+            value="0",
+            label="N (Lymph Node Spread)",
+            interactive=True
+        )
 
-    # New Focality of Differential Thyroid Cancer dropdown with descriptive text
-    focality_dropdown = gr.Dropdown(
-        choices=[
-            ("Uni-focal (Single focus of thyroid cancer)", "1"),
-            ("Multi-focal (Multiple foci of thyroid cancer)", "0")
-        ],
-        value="1",  # Default Uni-focal
-        label="Focality of Differential Thyroid Cancer",
-        interactive=True
-    )
+    with gr.Row():
+        focality_dropdown = gr.Dropdown(
+            choices=[
+                ("Uni-focal (Single focus of thyroid cancer)", "1"),
+                ("Multi-focal (Multiple foci of thyroid cancer)", "0")
+            ],
+            value="1",
+            label="Focality",
+            interactive=True
+        )
 
-    response_dropdown = gr.Dropdown(
-        choices=[
-            ("✅ Excellent Response - Negative imaging studies and suppressed thyroglobulin levels (below 0.2 ng/mL or stimulated Tg below 1 ng/mL)", "0"),
-            ("❓ Indeterminate Response - Nonspecific findings on imaging studies with potentially low thyroglobulin levels", "1"),
-            ("⚠️ Biochemical Incomplete - Negative imaging but elevated thyroglobulin levels or rising anti-Tg antibody levels", "2"),
-            ("❌ Structural Incomplete - Presence of identifiable structural disease on imaging, regardless of thyroglobulin level", "3")
-        ],
-        value="0",  # Default
-        label="Response",
-        interactive=True
-    )
+    with gr.Row():
+        response_dropdown = gr.Dropdown(
+            choices=[
+                ("✅ Excellent Response - Negative imaging studies and Tg < 0.2 ng/mL or stimulated Tg < 1 ng/mL", "0"),
+                ("❓ Indeterminate Response - Nonspecific findings; Tg potentially low", "1"),
+                ("⚠️ Biochemical Incomplete - Tg > 1 ng/mL or rising anti-Tg antibody levels", "2"),
+                ("❌ Structural Incomplete - Identifiable structural disease on imaging", "3")
+            ],
+            value="0",
+            label="Response",
+            interactive=True
+        )
 
-    # Predict button
-    predict_button = gr.Button(
-        value="Predict",
-        variant="primary"
-    )
-    prediction_output = gr.Markdown(label="Prediction Results")
+    predict_button = gr.Button(value="Predict", variant="primary")
+    prediction_output = gr.HTML(label="Prediction Results")
 
-    # Include all dropdowns as inputs for the predict function
+    predict_button.click(fn=clear_md, outputs=prediction_output)
     predict_button.click(
         fn=predict_cancer,
-        inputs=[age_slider, gender_radio, response_dropdown, tumor_size_dropdown, lymph_node_dropdown, focality_dropdown],
+        inputs=[age_slider, gender_radio, T_dropdown, N_dropdown, focality_dropdown, response_dropdown],
         outputs=prediction_output
     )
 
