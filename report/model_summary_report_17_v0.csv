@@ -1,0 +1,10 @@
+Model Name,Model Sensitivity,Model Specificity,Model AUC
+Random Forest,99.66,94.28,99.38
+Gradient Boosting,,,
+XGBoost,,,
+Decision Tree,87,100,99.35
+K-Nearest Neighbors,83,97.14,98.44
+Logistic Regression,,,
+AdaBoost,,,
+Support Vector Machine,99.33,97.14,99.71
+Gaussian Naive Bayes,,,

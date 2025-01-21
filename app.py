@@ -111,7 +111,7 @@ def predict_cancer(age, gender, T, N, Focality, Response):
             sensitivity = model_performance[model_name]['Model Sensitivity']
             specificity = model_performance[model_name]['Model Specificity']
 
-            row = f"<tr><td>{model_name}</td><td>{sensitivity:.1f}%</td><td>{specificity:.1f}%</td><td>{pred_text}</td></tr>"
+            row = f"<tr><td>{model_name}</td><td>{sensitivity:.2f}%</td><td>{specificity:.2f}%</td><td>{pred_text}</td></tr>"
             table_rows.append(row)
         except Exception as e:
             row = f"<tr><td>{model_name}</td><td>N/A</td><td>N/A</td><td>Error: {str(e)}</td></tr>"
