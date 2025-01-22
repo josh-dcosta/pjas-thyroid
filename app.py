@@ -80,7 +80,7 @@ def predict_cancer(age, gender, T, N, Focality, Response):
         <thead>
             <tr>
                 <th>Model</th>
-                <th style="color:red;">Recurrence Accuracy (%)</th>
+                <th style="color:#FBCEB1;">Recurrence Accuracy (%)</th>
                 <th style="color:green;">Non-Recurrence Accuracy (%)</th>
                 <th>Prediction</th>
             </tr>
@@ -126,7 +126,7 @@ def clear_md():
     return ""
 
 # UI Layout
-with gr.Blocks() as demo:
+with gr.Blocks(theme=gr.themes.Ocean()) as demo:
     gr.Markdown("# Thyroid Cancer Recurrence Predictor")
 
     with gr.Row():
