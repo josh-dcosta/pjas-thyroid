@@ -43,15 +43,38 @@ for model_name, pickle_file in model_paths.items():
         print(f"Model file for {model_name} not found.")
 
 def predict_cancer(age, gender, T, N, Focality, Response):
-    if not (1 <= age <= 100):
-        return "🔴 **Error:** Age must be between 1 and 100."
+    # Validate age
+    if age is None or not (1 <= age <= 100):
+        return "🔴 **Error:** Age must be a number between 1 and 100."
+    
+    # Validate gender
+    if gender not in ["Female", "Male"]:
+        return "🔴 **Error:** Please select a valid gender."
 
+    # Validate T (Tumor Size)
+    if T is None:
+        return "🔴 **Error:** Please select a valid T (Tumor Size) option."
+
+    # Validate N (Lymph Node Spread)
+    if N is None:
+        return "🔴 **Error:** Please select a valid N (Lymph Node Spread) option."
+
+    # Validate Focality
+    if Focality is None:
+        return "🔴 **Error:** Please select a valid Focality option."
+
+    # Validate Response
+    if Response is None:
+        return "🔴 **Error:** Please select a valid Response option."
+
+    # Process gender and other fields
     gender_val = 0 if gender == "Female" else 1
     response_val = int(Response)
     T_val = int(T)
     N_val = int(N)
     Focality_val = int(Focality)
 
+    # Prepare features
     features = pd.DataFrame({
         'Age': [age],
         'Gender': [gender_val],
@@ -61,6 +84,7 @@ def predict_cancer(age, gender, T, N, Focality, Response):
         'Response': [response_val]
     })
 
+    # Validate scaler file
     scaler_file = "model/pjas-thyroid-Scaler.pkl"
     if not os.path.exists(scaler_file):
         return "🔴 **Error:** Scaler file not found. Please contact the administrator."
@@ -68,13 +92,14 @@ def predict_cancer(age, gender, T, N, Focality, Response):
     scaler = joblib.load(scaler_file)
     features[['Age']] = scaler.transform(features[['Age']])
 
+    # Sort models based on sensitivity
     sorted_model_names = sorted(
         model_performance.keys(),
         key=lambda m: model_performance[m]['Model Sensitivity'],
         reverse=True
     )
 
-    # HTML table header with colored columns
+    # Generate HTML table
     table_header = """
     <table>
         <thead>
@@ -88,9 +113,8 @@ def predict_cancer(age, gender, T, N, Focality, Response):
         <tbody>
     """
     table_rows = []
-
-    can_recur_emoji = "🔴"  # "can recur"
-    cannot_recur_emoji = "🟢"  # "cannot-recur"
+    can_recur_emoji = "🔴"
+    cannot_recur_emoji = "🟢"
 
     for model_name in sorted_model_names:
         model = loaded_models.get(model_name)
@@ -102,11 +126,7 @@ def predict_cancer(age, gender, T, N, Focality, Response):
         try:
             prediction = model.predict(features)
             pred_value = prediction[0]
-
-            if pred_value == 1:
-                pred_text = f"{can_recur_emoji} Can recur"
-            else:
-                pred_text = f"{cannot_recur_emoji} Cannot-recur"
+            pred_text = f"{can_recur_emoji} Can recur" if pred_value == 1 else f"{cannot_recur_emoji} Cannot-recur"
 
             sensitivity = model_performance[model_name]['Model Sensitivity']
             specificity = model_performance[model_name]['Model Specificity']
