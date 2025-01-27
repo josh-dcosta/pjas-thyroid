@@ -9,6 +9,7 @@ import numpy as np
 data_17_features = pd.read_csv('report/model_summary_report_17_v0.csv')  # Replace with your file path
 data_6_smote = pd.read_csv('report/model_summary_report_6_smote.csv')  # Replace with your file path
 
+
 # Sort the data by 'Model Name'
 data_17_features = data_17_features.sort_values(by='Model Name')
 data_6_smote = data_6_smote.sort_values(by='Model Name')
@@ -29,7 +30,7 @@ for metric in metrics:
     plt.figure(figsize=(12, 6))
 
     # Plot grouped bars
-    plt.bar(x - width / 2, data_6_smote[metric], width, label='6 Features (SMOTE)', color='green')
+    plt.bar(x - width / 2, data_6_smote[metric], width, label='6 Features', color='green')
     plt.bar(x + width / 2, data_17_features[metric], width, label='17 Features', color='orange')
 
     # Add values on the bars
@@ -67,7 +68,7 @@ title = slide.shapes.title
 subtitle = slide.placeholders[1]
 
 title.text = "Comparison of Feature Sets for Predicting Thyroid Cancer Recurrence"
-subtitle.text = "Analyzing 6 Features (SMOTE) and 17 Features"
+subtitle.text = "Analyzing 6 Features and 17 Features"
 
 # Overview slide
 slide = presentation.slides.add_slide(presentation.slide_layouts[1])
@@ -76,7 +77,7 @@ content = slide.placeholders[1]
 
 title.text = "Overview of Feature Sets"
 content.text = (
-    "1. 6 Features (SMOTE): Models with 6 features and Synthetic Minority Oversampling Technique to balance data.\n"
+    "1. 6 Features: Models with 6 features and Synthetic Minority Oversampling Technique to balance data.\n"
     "2. 17 Features: Models using all available clinico-pathological features."
 )
 

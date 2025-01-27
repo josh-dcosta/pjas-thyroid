@@ -9,6 +9,7 @@ model_scores_file = "report/model_summary_report_6_smote.csv"
 # Load model performance metrics from the provided CSV file
 if os.path.exists(model_scores_file):
     model_scores_df = pd.read_csv(model_scores_file)
+    model_scores_df = model_scores_df[~(model_scores_df['Model Name'] == 'ANN')]
     required_columns = {'Model Name', 'Model Sensitivity', 'Model Specificity'}
     if required_columns.issubset(model_scores_df.columns):
         model_performance = model_scores_df.set_index('Model Name')[['Model Sensitivity', 'Model Specificity']].T.to_dict()
@@ -20,6 +21,7 @@ else:
 # Dictionary containing the model names and corresponding pickle file names
 model_paths = {
     'AdaBoost': 'pjas-thyroid-AdaBoost.pkl',
+    'CatBoost': 'pjas-thyroid-CatBoost.pkl',
     'Decision Tree': 'pjas-thyroid-Decision Tree.pkl',
     'Gaussian Naive Bayes': 'pjas-thyroid-Gaussian Naive Bayes.pkl',
     'Gradient Boosting': 'pjas-thyroid-Gradient Boosting.pkl',

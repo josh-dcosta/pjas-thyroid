@@ -8,3 +8,5 @@ Logistic Regression,,,
 AdaBoost,,,
 Support Vector Machine,99.33,97.14,99.71
 Gaussian Naive Bayes,,,
+ANN,96.6,95.71,99.64
+Catboost,,,
