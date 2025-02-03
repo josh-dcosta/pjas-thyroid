@@ -1,0 +1,12 @@
+Model Name,Model Sensitivity,Model Specificity
+Random Forest,96.88,98.8
+XGBoost,96.88,98.8
+CatBoost,93.75,98.8
+Gradient Boosting,93.75,96.39
+Decision Tree,96.88,92.77
+K-Nearest Neighbors,93.75,98.8
+AdaBoost,96.88,96.39
+Logistic Regression,96.88,97.59
+Support Vector Machine,93.75,96.39
+Gaussian Naive Bayes,93.75,98.8
+ANN,96.88,92.77

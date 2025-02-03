@@ -6,12 +6,12 @@ import os
 import numpy as np
 
 # Load your data from CSV files
-data_17_features = pd.read_csv('report/model_summary_report_17_v0.csv')  # Replace with your file path
+data_13_features = pd.read_csv('report/model_summary_report_13_v0.csv')  # Replace with your file path
 data_6_smote = pd.read_csv('report/model_summary_report_6_smote.csv')  # Replace with your file path
 
 
 # Sort the data by 'Model Name'
-data_17_features = data_17_features.sort_values(by='Model Name')
+data_13_features = data_13_features.sort_values(by='Model Name')
 data_6_smote = data_6_smote.sort_values(by='Model Name')
 
 # Metrics for comparison
@@ -23,7 +23,7 @@ os.makedirs("presentation", exist_ok=True)
 # Generate and save grouped bar charts for each metric
 graph_image_paths = []
 for metric in metrics:
-    models = data_17_features['Model Name']  # Assuming all datasets have the same models
+    models = data_13_features['Model Name']  # Assuming all datasets have the same models
     x = np.arange(len(models))  # Positions for the groups
     width = 0.25  # Width of each bar
 
@@ -31,21 +31,27 @@ for metric in metrics:
 
     # Plot grouped bars
     plt.bar(x - width / 2, data_6_smote[metric], width, label='6 Features', color='green')
-    plt.bar(x + width / 2, data_17_features[metric], width, label='17 Features', color='orange')
+    plt.bar(x + width / 2, data_13_features[metric], width, label='13 Features', color='orange')
 
     # Add values on the bars
-    for group, data in zip([x - width / 2, x + width / 2], [data_6_smote, data_17_features]):
+    for group, data in zip([x - width / 2, x + width / 2], [data_6_smote, data_13_features]):
         for pos, value in zip(group, data[metric]):
             plt.text(pos, value, f'{value:.2f}', ha='center', va='bottom', fontsize=6)
 
     # Chart details
     ylabel = metric.replace('Model ', '')
     if ylabel == "Sensitivity":
-        ylabel = "Recurrence Accuracy"
+        ylabel = "Accuracy (%)"
     elif ylabel == "Specificity":
-        ylabel = "Non-Recurrence Accuracy"
+        ylabel = "Accuracy (%)"
+    
+    chart_title = metric.replace('Model ', '')
+    if chart_title == "Sensitivity":
+        chart_title = "Recurrence"
+    elif chart_title == "Specificity":
+        chart_title = "Non-recurrence"
 
-    plt.title(f'Comparison of {ylabel} Across Feature Sets', fontsize=14)
+    plt.title(f'Comparison of {chart_title} across 6 vs 13 Features', fontsize=14)
     plt.xlabel('Model', fontsize=12)
     plt.ylabel(ylabel, fontsize=12)
     plt.xticks(x, models, rotation=45)
@@ -68,7 +74,7 @@ title = slide.shapes.title
 subtitle = slide.placeholders[1]
 
 title.text = "Comparison of Feature Sets for Predicting Thyroid Cancer Recurrence"
-subtitle.text = "Analyzing 6 Features and 17 Features"
+subtitle.text = "Analyzing 6 Features and 13 Features"
 
 # Overview slide
 slide = presentation.slides.add_slide(presentation.slide_layouts[1])
@@ -78,7 +84,7 @@ content = slide.placeholders[1]
 title.text = "Overview of Feature Sets"
 content.text = (
     "1. 6 Features: Models with 6 features and Synthetic Minority Oversampling Technique to balance data.\n"
-    "2. 17 Features: Models using all available clinico-pathological features."
+    "2. 13 Features: Models using all available clinico-pathological features."
 )
 
 # Metrics slide

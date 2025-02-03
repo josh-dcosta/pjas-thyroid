@@ -11,7 +11,7 @@ from pptx.enum.text import PP_ALIGN
 # --------------------------------------
 
 # File paths for the 13-feature and 6-feature reports
-csv_13 = "report/model_summary_report_13.csv"
+csv_13 = "report/model_summary_report_13_v0.csv"
 csv_6  = "report/model_summary_report_6_smote.csv"
 
 # Load the CSVs into dataframes
@@ -22,13 +22,13 @@ else:
     raise FileNotFoundError("One or both CSV files were not found. Check the file paths.")
 
 # --- Assume both dataframes have these columns:
-# "Model Name", "Test Accuracy", "Model Sensitivity", "Model Specificity"
+# "Model Name", "Model Sensitivity", "Model Specificity"
 # (If your CSVs use different names, adjust accordingly.)
 
 # Merge the dataframes on "Model Name" with suffixes for clarity
 merged_df = pd.merge(
-    df13[['Model Name', 'Test Accuracy', 'Model Sensitivity', 'Model Specificity']],
-    df6[['Model Name', 'Test Accuracy', 'Model Sensitivity', 'Model Specificity']],
+    df13[['Model Name', 'Model Sensitivity', 'Model Specificity']],
+    df6[['Model Name', 'Model Sensitivity', 'Model Specificity']],
     on='Model Name', suffixes=('_13', '_6')
 )
 
@@ -58,17 +58,16 @@ def create_grouped_bar_chart(df, metric, ylabel, title, output_path):
 # Create output folder for graphs if it doesn't exist
 os.makedirs("graphs", exist_ok=True)
 
-# Generate grouped bar charts for Sensitivity, Specificity, and Accuracy
+# Generate grouped bar charts for Sensitivity, Specificity
 sensitivity_chart = "graphs/sensitivity_comparison.png"
 specificity_chart = "graphs/specificity_comparison.png"
-accuracy_chart    = "graphs/accuracy_comparison.png"
+
 
 create_grouped_bar_chart(merged_df, "Model Sensitivity", "Sensitivity (%)",
                            "Comparison of Model Sensitivity", sensitivity_chart)
 create_grouped_bar_chart(merged_df, "Model Specificity", "Specificity (%)",
                            "Comparison of Model Specificity", specificity_chart)
-create_grouped_bar_chart(merged_df, "Test Accuracy", "Accuracy (%)",
-                           "Comparison of Test Accuracy", accuracy_chart)
+
 
 # --------------------------------------
 # PART 2: Create the PowerPoint Presentation
@@ -104,7 +103,7 @@ slide.shapes.title.text = "Problem / Purpose / Question"
 text = (
     "Problem: Recurrence of thyroid cancer is unpredictable, complicating patient management.\n\n"
     "Purpose: Develop a predictive model using fewer features.\n\n"
-    "Question: Can a model using only 6 key features achieve high accuracy, sensitivity, and specificity compared to 13-feature models?"
+    "Question: Can a model using only 6 key features achieve high sensitivity, and specificity compared to 13-feature models?"
 )
 slide.placeholders[1].text_frame.text = text
 
@@ -139,7 +138,7 @@ text = (
     "3. Feature Selection: Reduce from 13 to 6 key features based on importance.\n"
     "4. Balance Data: Apply SMOTE to address class imbalance.\n"
     "5. Model Training: Train various ML models using the 6 selected features.\n"
-    "6. Evaluation: Assess models using accuracy, sensitivity, specificity, and AUC.\n"
+    "6. Evaluation: Assess models using sensitivity, specificity.\n"
     "7. Deployment: Export models and create a Gradio app for real-time prediction."
 )
 slide.placeholders[1].text_frame.text = text
@@ -180,8 +179,7 @@ height = Inches(3)
 slide.shapes.add_picture(sensitivity_chart, left, top, width=width, height=height)
 # Insert Specificity Comparison Chart
 slide.shapes.add_picture(specificity_chart, left+Inches(4.5), top, width=width, height=height)
-# Insert Accuracy Comparison Chart
-slide.shapes.add_picture(accuracy_chart, left, top+Inches(3.5), width=width, height=height)
+
 
 # --- Slide 9: Analysis ---
 slide = prs.slides.add_slide(bullet_slide_layout)
@@ -191,7 +189,7 @@ text = (
     "• Imbalance: Recurrence outcome is skewed towards non-recurrence.\n"
     "• Model Comparison:\n"
     "   - 13-feature models achieved very high sensitivity and AUC.\n"
-    "   - Our 6-feature models (e.g., XGBoost, Random Forest) maintained test accuracy >98%.\n"
+    "   - Our 6-feature models (e.g., XGBoost, Random Forest) maintained accuracy >98%.\n"
     "   - Some models (e.g., SVM) underperformed with fewer features.\n"
     "• Conclusion: Careful feature selection preserves high performance while reducing cost and protecting privacy."
 )
