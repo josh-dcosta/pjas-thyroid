@@ -56,11 +56,11 @@ def create_grouped_bar_chart(df, metric, ylabel, title, output_path):
     plt.close()
 
 # Create output folder for graphs if it doesn't exist
-os.makedirs("graphs", exist_ok=True)
+os.makedirs("graph", exist_ok=True)
 
 # Generate grouped bar charts for Sensitivity, Specificity
-sensitivity_chart = "graphs/sensitivity_comparison.png"
-specificity_chart = "graphs/specificity_comparison.png"
+sensitivity_chart = "graph/sensitivity_comparison.png"
+specificity_chart = "graph/specificity_comparison.png"
 
 
 create_grouped_bar_chart(merged_df, "Model Sensitivity", "Sensitivity (%)",
